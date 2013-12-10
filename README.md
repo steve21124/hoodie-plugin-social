@@ -9,6 +9,7 @@ Please note:  This plugin is under major development and we are actively experim
 ## Methods
 
 Signin to Hoodie through a social provider
+
     hoodie.account.socialLogin({
         initCallback: function(data) {
             // callback after the backend registers a request
