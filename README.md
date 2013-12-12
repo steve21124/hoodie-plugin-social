@@ -8,7 +8,7 @@ Please note:  This plugin is under major development and we are actively experim
 
 ## Installation
 
-Install from teh Hoodie CLI
+Install from the Hoodie CLI
 
     hoodie install social
 
