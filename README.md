@@ -6,6 +6,12 @@ The development of this plugin is sponsored by Appback.com - the future home of 
 
 Please note:  This plugin is under major development and we are actively experimenting to identify the best ways of integrating with Hoodie.  Use at your own risk.
 
+## Installation
+
+Install from teh Hoodie CLI
+
+    hoodie install social
+
 ## Methods
 
 Signin to Hoodie through a social provider
@@ -24,9 +30,9 @@ Signin to Hoodie through a social provider
             <p id="welcome">Login with:<br /><a href="javascript:auth('facebook');">Facebook</a> | <a href="javascript:auth('twitter');">Twitter</a> | <a href="javascript:auth('google');">Google</a></p>
             <p id ="profile"></p>
             <script src="http://code.jquery.com/jquery-1.10.2.min.js"></script>
-            <script src="http://testapp34.appback.com/_api/_files/hoodie.js"></script>
+            <script src="http://your-host:your-port/_api/_files/hoodie.js"></script>
             <script>
-                var hoodie = new Hoodie('http://testapp34.appback.com');
+                var hoodie = new Hoodie('http://your-host:your-port');
                 var auth = function(provider) {
                     $('#welcome').text('Loading...');
                     hoodie.account.socialLogin(provider)
