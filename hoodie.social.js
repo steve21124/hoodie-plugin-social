@@ -7,8 +7,8 @@ Hoodie.extend(function(hoodie) {
         var popup;
 
         // open popup immediately to prevent it from being blocked
-        popup = new Popup()
-        popup.setText('connecting to ' + providerName )
+        popup = new Popup();
+        popup.setText('connecting to ' + providerName );
 
         return awaitNewAuth($.extend({popup: popup, provider: providerName}, options));
     };

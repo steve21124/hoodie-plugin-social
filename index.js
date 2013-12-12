@@ -34,7 +34,6 @@ authServer.use(function (req, res, next) {
 //run the rest in the hoodie context
 module.exports = function (hoodie, cb) {
     //check for plugin config items and set if not there
-    //TODO: add "enabled":false (include google too)
     if (!hoodie.config.get('port')) hoodie.config.set('port', ports.getPort(appName+'-hoodie-plugin-social'));
     if (!hoodie.config.get('facebook_config')) hoodie.config.set('facebook_config', {"enabled":false,"settings":{"clientID":"","clientSecret":""}});
     if (!hoodie.config.get('twitter_config')) hoodie.config.set('twitter_config', {"enabled":false,"settings":{"consumerKey":"","consumerSecret":""}});
@@ -62,10 +61,11 @@ module.exports = function (hoodie, cb) {
             delete auths[req.session.ref];
             req.session.destroy();
             res.redirect(host+'/');
+            return false;
         }
         
         //either send the current auth object or create one
-        if (req.session.ref && (auths[req.session.ref] != undefined)) {
+        if ((req.session.ref != undefined) && (auths[req.session.ref] != undefined)) {
             res.send(auths[req.session.ref]);
         } else {
             setAuthObj(function(ref) {
@@ -129,10 +129,10 @@ module.exports = function (hoodie, cb) {
                 auths[req.session.ref]['temp_pass'] = Math.random().toString(36).slice(2,11);
                 hoodie.account.update('user', id, {password:auths[req.session.ref]['temp_pass']}, function(err, data){ console.log(data); });
                 
-                //give the use some visual feedback that hey have been authenicated
+                //give the user some visual feedback
                 res.send('<html><head><script src="http://fgnass.github.io/spin.js/dist/spin.min.js"></script></head><body onload="/*self.close();*/" style="margin:0; padding:0; width:100%; height: 100%; display: table;"><div style="display:table-cell; text-align:center; vertical-align: middle;"><div id="spin" style="display:inline-block;"></div></div><script>var spinner=new Spinner().spin(); document.getElementById("spin").appendChild(spinner.el);</script></body></html>');
             } else {
-                //assume it's because the couch user is not there and just create one
+                //assume the error is because the couch user is not there and just create one
                 var uuid = Math.random().toString(36).slice(2,9);
                 var timeStamp = new Date();
                 var userdoc = {
