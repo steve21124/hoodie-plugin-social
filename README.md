@@ -12,6 +12,10 @@ Install from the Hoodie CLI
 
     hoodie install social
 
+## Configuration
+
+Open Pocket, add your provider Key/ID & Secret, then save.
+
 ## Methods
 
 Signin to Hoodie through a social provider
