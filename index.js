@@ -60,15 +60,16 @@ module.exports = function (hoodie, cb) {
         if (req.query.destroy == 'true' && req.session.ref) {
             delete auths[req.session.ref];
             req.session.destroy();
-            res.redirect(host+'/');
+            res.redirect(host+req.url.replace('destroy=true','destroy=false'));
             return false;
         }
         
         //either send the current auth object or create one
         if ((req.session.ref != undefined) && (auths[req.session.ref] != undefined)) {
             res.send(auths[req.session.ref]);
+            delete auths[req.session.ref]['temp_pass']; //only give it once!
         } else {
-            setAuthObj(function(ref) {
+            setAuthObj({method: req.query.method, id: req.query.userid}, function(ref) {
                 req.session.ref = ref;
                 res.send(auths[req.session.ref]);
             });
@@ -81,9 +82,17 @@ module.exports = function (hoodie, cb) {
             invokeStrategy(req.query.provider, res);
         } else {
             if (req.query.provider == 'facebook') {
-                passport.authenticate(req.query.provider, { display: 'touch' })(req, res);
+                if (!req.isAuthenticated()) { //TODO: Do we really need to use authorize()?  It seems like we would get he same reult with authenicate().
+                    passport.authenticate(req.query.provider, { display: 'touch' })(req, res);
+                } else {
+                    passport.authorize(req.query.provider, { display: 'touch' })(req, res);
+                }
             } else {
-                passport.authenticate(req.query.provider)(req, res);
+                if (!req.isAuthenticated()) {
+                    passport.authenticate(req.query.provider)(req, res);
+                } else {
+                    passport.authorize(req.query.provider)(req, res);
+                }
             }
         }
     });
@@ -102,32 +111,45 @@ module.exports = function (hoodie, cb) {
 
     //setup generic callback route (redirect destination from specific provider routes)
     authServer.get('/callback', function(req, res) {
-        //generate a auth obj if we need one
-        if (req.session.ref == undefined || (auths[req.session.ref] == undefined)) {
-            setAuthObj(function(ref){
-                req.session.ref = ref;
-            });
+        if (auths[req.session.ref]['id'] == undefined) {
+            //if there's no email provided by the provider (like twitter), we will create our own id
+            var id = (req.user.emails == undefined) ? req.user.displayName.replace(' ','_').toLowerCase()+'_'+req.user.id : req.user.emails[0].value;
+        } else {
+            var id = auths[req.session.ref]['id'];
         }
         
-        //if there's no email provided by the provider (like twitter), we will create our own id
-        var id = (req.user.emails == undefined) ? req.user.displayName.replace(' ','_').toLowerCase()+'_'+req.user.id : req.user.emails[0].value;
-        
-        //update the auth object values
-        auths[req.session.ref]['authenticated'] = true;
-        auths[req.session.ref]['provider'] = req.query.provider;
-        auths[req.session.ref]['id'] = id;
-        auths[req.session.ref]['full_profile'] = req.user;
-        delete auths[req.session.ref]['auth_urls'];
-               
         //check if we have a couch user and act accordingly
         hoodie.account.find('user', id, function(err, data){
+            var updateVals = {};
+            
             if (!err) {
-                //set the auth time value (used for cleanup)
-                auths[req.session.ref]['auth_time'] = new Date().getTime();
+                if (auths[req.session.ref]['method'] == 'login' && !auths[req.session.ref]['authenticated']) {
+                    auths[req.session.ref]['provider'] = req.query.provider;
+                    auths[req.session.ref]['id'] = id;
+                    auths[req.session.ref]['full_profile'] = req.user;
                 
-                //temporarily change the users password - this is where the magic happens!
-                auths[req.session.ref]['temp_pass'] = Math.random().toString(36).slice(2,11);
-                hoodie.account.update('user', id, {password:auths[req.session.ref]['temp_pass']}, function(err, data){ console.log(data); });
+                    auths[req.session.ref]['authenticated'] = true;
+                
+                    //set the auth time value (used for cleanup)
+                    auths[req.session.ref]['auth_time'] = new Date().getTime();
+                    
+                    //temporarily change the users password - this is where the magic happens!
+                    auths[req.session.ref]['temp_pass'] = Math.random().toString(36).slice(2,11);
+                    
+                    //update password
+                    updateVals['password'] = auths[req.session.ref]['temp_pass'];
+                }
+                
+                //always update connections
+                var connections = (data.connections) ? data.connections : {};
+                connections[req.query.provider] = auths[req.session.ref]['connections'][req.query.provider];
+                updateVals['connections'] = connections;
+                                
+                //update values
+                hoodie.account.update('user', id, updateVals, function(err, data){ console.log(data); });
+                
+                //mark as complete
+                auths[req.session.ref]['complete'] = true;
                 
                 //give the user some visual feedback
                 res.send('<html><head><script src="http://fgnass.github.io/spin.js/dist/spin.min.js"></script></head><body onload="/*self.close();*/" style="margin:0; padding:0; width:100%; height: 100%; display: table;"><div style="display:table-cell; text-align:center; vertical-align: middle;"><div id="spin" style="display:inline-block;"></div></div><script>var spinner=new Spinner().spin(); document.getElementById("spin").appendChild(spinner.el);</script></body></html>');
@@ -169,20 +191,21 @@ module.exports = function (hoodie, cb) {
         config = hoodie.config.get(provider+'_config');
         if (config.enabled) {
             settings = config.settings;
+            settings['passReqToCallback'] = true;
             settings['failureRedirect'] = '/fail'; //todo - set this route up
             if (provider == 'facebook') {
                 settings['callbackURL'] = host+'/facebook/callback';
                 var providerStrategy = facebookStrategy;
-                var verify = function(accessToken,refreshToken,profile,done){process.nextTick(function(){return done(null,profile);});}
+                var verify = function(req, accessToken,refreshToken,profile,done){ auths[req.session.ref]['connections'][provider] = {token: accessToken};  process.nextTick(function(){return done(null,profile);});}
             } else if (provider == 'twitter') {
                 settings['callbackURL'] = host+'/twitter/callback';
                 var providerStrategy = twitterStrategy;
-                var verify = function(accessToken,refreshToken,profile,done){process.nextTick(function(){return done(null,profile);});}
+                var verify = function(req, accessToken,refreshToken,profile,done){ auths[req.session.ref]['connections'][provider] = {token: accessToken};  process.nextTick(function(){return done(null,profile);});}
             } else if (provider == 'google') {
                 settings['returnURL'] = host+'/google/callback';
                 settings['realm'] = host;
                 var providerStrategy = googleStrategy;
-                var verify = function(identifier,profile,done){process.nextTick(function(){return done(null,profile);});}
+                var verify = function(req, identifier,profile,done){process.nextTick(function(){return done(null,profile);});}
             }
             passport.use(new providerStrategy(settings,verify));
             res.redirect(host+'/authenticate/'+provider);
@@ -191,22 +214,29 @@ module.exports = function (hoodie, cb) {
             return false;
         }
     }
-    
+        
     //function to assign a an auth object
-    function setAuthObj(callback) {
+    function setAuthObj(options, callback) {
         //generate random reference ID
         var ref = Math.random().toString(36).slice(2);
         
         //set a new request object for tracking progress
         auths[ref] = {
+            "method": options.method,
             "requested": new Date().getTime(),
-            "authenticated":false,
+            "authenticated":false, /*depreciated*/
+            "complete": false,
             "auth_urls": {
                 "facebook":host+"/authenticate/facebook",
                 "twitter":host+"/authenticate/twitter",
                 "google":host+"/authenticate/google"
-            }
+            },
+            "connections": {}
         };
+        
+        //set the id if we have it
+        if (options.id) auths[ref]['id'] = options.id;
+        
         callback(ref);
     }
     

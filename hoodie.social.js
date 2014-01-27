@@ -10,25 +10,38 @@ Hoodie.extend(function(hoodie) {
         popup = new Popup();
         popup.setText('connecting to ' + providerName );
 
-        return awaitNewAuth($.extend({popup: popup, provider: providerName}, options));
+        return new awaitNewAuth($.extend({popup: popup, provider: providerName, method: 'login'}, options));
+    };
+    
+    hoodie.account.socialConnect = function(providerName, /*optional*/options) {
+        var popup;
+
+        // open popup immediately to prevent it from being blocked
+        popup = new Popup();
+        popup.setText('connecting to ' + providerName );
+
+        return new awaitNewAuth($.extend({popup: popup, provider: providerName, method: 'connect', userid: hoodie.account.username}, options));
     };
 
     function awaitNewAuth(options) {
         var settings = $.extend({
                 attemptLimit:     20,
                 interval:         3000,
-                authServerUri:    hoodie.baseUrl+'/_api/_auth'
+                authServerUri:    hoodie.baseUrl+'/_api/_auth',
+                destroy:          true
             }, options);
             
         //setup deferal
         var defer = hoodie.defer();
             
         var authUrlOpened = false;
-        var destroy = true;
         var pollForAuth = function () {
-                //check if we need to destroy the old session (and set to false for single run)
-                var appendUri = (destroy) ? '/?destroy=true&uri='+settings.authServerUri : '?uri='+settings.authServerUri;
-                destroy = false;
+                //build the parameters
+                var appendUri = '/?destroy='+settings.destroy+'&uri='+settings.authServerUri+'&method='+settings.method;
+                if (settings.userid) appendUri += '&userid='+settings.userid;
+              
+                //reset the destroy setting
+                settings.destroy = false;
 
                 //decrement attemptLimit
                 settings.attemptLimit--;
@@ -40,8 +53,8 @@ Hoodie.extend(function(hoodie) {
                         dataType: 'json',
                         xhrFields: { withCredentials: true }, /* for cross domain support*/
                         success: function(data){
-                            //Check if authenticated and reurn data or keep polling
-                            if (data.authenticated) {
+                            //Check if authenticated or connected and return data or keep polling
+                            if (data.method == 'login' && data.authenticated && data.temp_pass) {
                                 //clear the timer
                                 clearTimeout(authTimer);
                            
@@ -55,7 +68,11 @@ Hoodie.extend(function(hoodie) {
                                 .fail( function(failData){
                                     defer.reject(new Error('signin'));
                                 });
+                            } else if (data.method == 'connect' && data.complete && data.connections[settings.provider]) {
+                                settings.popup.close();
+                                defer.resolve(data);
                             } else {
+                                console.log(data);
                                 //open the auth Url if it has not been opened
                                 if (!authUrlOpened) {
                                     settings.popup.open(data.auth_urls[settings.provider]);
