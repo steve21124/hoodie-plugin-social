@@ -1,5 +1,5 @@
 /*
- * Copyright 2013 Xiatron LLC
+ * Copyright 2013-2014 Xiatron LLC
  */
 
 //set some vars
@@ -14,6 +14,10 @@ var googleStrategy = require('passport-google').Strategy;
 var authServer = express();
 var auths = {};
 var host = null;
+var socialApi = require('./social_api.js');
+var moment = require('moment');
+var socialTasks = []; //keeps track of social active tasks
+
 
 //config express and passport
 passport.serializeUser(function(user, done) { done(null, user); });
@@ -22,6 +26,7 @@ authServer.use(express.cookieParser());
 authServer.use(express.session({ secret: 'SECRET' }));
 authServer.use(passport.initialize());
 authServer.use(passport.session());
+authServer.use(express.bodyParser());
 
 // Add headers to support CORS
 authServer.use(function (req, res, next) {
@@ -32,7 +37,7 @@ authServer.use(function (req, res, next) {
 });
 
 //run the rest in the hoodie context
-module.exports = function (hoodie, cb) {
+module.exports = function (hoodie, cb) {    
     //check for plugin config items and set if not there
     if (!hoodie.config.get('port')) hoodie.config.set('port', ports.getPort(appName+'-hoodie-plugin-social'));
     if (!hoodie.config.get('facebook_config')) hoodie.config.set('facebook_config', {"enabled":false,"settings":{"clientID":"","clientSecret":""}});
@@ -75,9 +80,51 @@ module.exports = function (hoodie, cb) {
             });
         }
     });
+    
+    //listen for tasks to set status
+    var social = new socialApi();
+    hoodie.task.on('add:setstatus', function (db, doc) {
+        var process = function() {
+            if (socialTasks.indexOf(db) > -1) {
+                setTimeout(process,50);
+            } else  {
+                //lock (to avoid the rare case of concurrent conflicting writes)
+                socialTasks.push(db);
+                
+                //process
+                if (doc.provider && doc.userid && doc.message) {
+                    var creds = { accessToken: null };
+                    
+                    hoodie.account.find('user', doc.userid, function(err, data){
+                        if (doc.provider == 'twitter') {
+                            var providerConfig = hoodie.config.get('twitter_config');
+                            creds['consumerKey'] = providerConfig.settings.consumerKey;
+                            creds['consumerSecret'] = providerConfig.settings.consumerSecret;
+                            creds['accessSecret'] = data.connections[doc.provider]['secret'];
+                        }
+                        if (data.connections[doc.provider] != undefined) creds['accessToken'] = data.connections[doc.provider]['token'];
+                        
+                        var apiClient = new social[doc.provider](creds);
+                        apiClient.setStatus(doc.message, function(err, data){
+                            var response = (err) ? err : data;
+                            //clear the lock
+                            socialTasks.splice(socialTasks.indexOf(db), 1);
+                            
+                            //mimic a 'hoodie.task.success(db, doc)' but add the doneData object
+                            doc['$processedAt'] = moment().format();
+                            doc['_deleted'] = true;
+                            doc['doneData'] = response;
+                            hoodie.database(db).update(doc.type, doc.id, doc, function(err, data){ if(err) console.log(err); });
+                        });
+                    });
+                }
+            }
+        }
+        process();
+    });
         
     //setup generic authenticate route (redirect destination from specific provider routes)
-    authServer.get('/authenticate', function(req, res) {
+    authServer.get('/auth', function(req, res) {
         if (passport._strategies[req.query.provider] == undefined) {
             invokeStrategy(req.query.provider, res);
         } else {
@@ -98,15 +145,15 @@ module.exports = function (hoodie, cb) {
     });
     
     //setup facebook specific authenicate and callback routes
-    authServer.get('/authenticate/facebook', function(req, res) { res.redirect(host+'/authenticate?provider=facebook'); });
+    authServer.get('/auth/facebook', function(req, res) { res.redirect(host+'/auth?provider=facebook'); });
     authServer.get('/facebook/callback', passport.authenticate('facebook'), function(req, res) {res.redirect(host+'/callback?provider=facebook');});
 
     //setup twitter specific authenicate and callback routes
-    authServer.get('/authenticate/twitter', function(req, res) { res.redirect(host+'/authenticate?provider=twitter'); });
+    authServer.get('/auth/twitter', function(req, res) { res.redirect(host+'/auth?provider=twitter'); });
     authServer.get('/twitter/callback', passport.authenticate('twitter'), function(req, res) {res.redirect(host+'/callback?provider=twitter');});
     
     //setup google specific authenicate and callback routes
-    authServer.get('/authenticate/google', function(req, res) { res.redirect(host+'/authenticate?provider=google'); });
+    authServer.get('/auth/google', function(req, res) { res.redirect(host+'/auth?provider=google'); });
     authServer.get('/google/callback', passport.authenticate('google'), function(req, res) {res.redirect(host+'/callback?provider=google');});
 
     //setup generic callback route (redirect destination from specific provider routes)
@@ -188,9 +235,9 @@ module.exports = function (hoodie, cb) {
     
     //function to invoke a strategy
     function invokeStrategy(provider, res) {
-        config = hoodie.config.get(provider+'_config');
+        var config = hoodie.config.get(provider+'_config');
         if (config.enabled) {
-            settings = config.settings;
+            var settings = config.settings;
             settings['passReqToCallback'] = true;
             settings['failureRedirect'] = '/fail'; //todo - set this route up
             if (provider == 'facebook') {
@@ -200,7 +247,7 @@ module.exports = function (hoodie, cb) {
             } else if (provider == 'twitter') {
                 settings['callbackURL'] = host+'/twitter/callback';
                 var providerStrategy = twitterStrategy;
-                var verify = function(req, accessToken,refreshToken,profile,done){ auths[req.session.ref]['connections'][provider] = {token: accessToken};  process.nextTick(function(){return done(null,profile);});}
+                var verify = function(req, accessToken,tokenSecret,profile,done){ auths[req.session.ref]['connections'][provider] = {token: accessToken, secret: tokenSecret};  process.nextTick(function(){return done(null,profile);});}
             } else if (provider == 'google') {
                 settings['returnURL'] = host+'/google/callback';
                 settings['realm'] = host;
@@ -208,7 +255,7 @@ module.exports = function (hoodie, cb) {
                 var verify = function(req, identifier,profile,done){process.nextTick(function(){return done(null,profile);});}
             }
             passport.use(new providerStrategy(settings,verify));
-            res.redirect(host+'/authenticate/'+provider);
+            res.redirect(host+'/auth/'+provider);
         } else {
             res.send('Provider not configured');
             return false;
@@ -227,9 +274,9 @@ module.exports = function (hoodie, cb) {
             "authenticated":false, /*depreciated*/
             "complete": false,
             "auth_urls": {
-                "facebook":host+"/authenticate/facebook",
-                "twitter":host+"/authenticate/twitter",
-                "google":host+"/authenticate/google"
+                "facebook":host+"/auth/facebook",
+                "twitter":host+"/auth/twitter",
+                "google":host+"/auth/google"
             },
             "connections": {}
         };

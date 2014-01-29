@@ -1,8 +1,11 @@
 /*
- * Copyright 2013 Xiatron LLC
+ * Copyright 2013-2014 Xiatron LLC
  */
 
 Hoodie.extend(function(hoodie) {
+    /*
+    *   Social Login method
+    */
     hoodie.account.socialLogin = function(providerName, /*optional*/options) {
         var popup;
 
@@ -13,6 +16,9 @@ Hoodie.extend(function(hoodie) {
         return new awaitNewAuth($.extend({popup: popup, provider: providerName, method: 'login'}, options));
     };
     
+    /*
+    *   Social Connect method
+    */
     hoodie.account.socialConnect = function(providerName, /*optional*/options) {
         var popup;
 
@@ -22,7 +28,26 @@ Hoodie.extend(function(hoodie) {
 
         return new awaitNewAuth($.extend({popup: popup, provider: providerName, method: 'connect', userid: hoodie.account.username}, options));
     };
-
+    
+    /*
+    *   Social Set Status method
+    */
+    hoodie.account.socialSetStatus = function(options) {
+        var attrs = {
+            userid: hoodie.account.username,
+            provider: options.provider,
+            message: options.message
+        };
+        var defer = hoodie.defer();
+        var promise = hoodie.task.start('setstatus', attrs);
+        promise.then(function(data){ defer.resolve(data.doneData); });
+        promise.fail(function(data){ defer.reject(); });
+        return defer.promise();
+    }
+    
+    /*
+    *   Internal methods
+    */
     function awaitNewAuth(options) {
         var settings = $.extend({
                 attemptLimit:     20,
@@ -99,21 +124,27 @@ Hoodie.extend(function(hoodie) {
     
     // little popup helper class
     var Popup = function() {
-      this.win = window.open('', 'Title', 'toolbar=no, location=no, directories=no, status=no, menubar=no, scrollbars=yes, resizable=yes, width=600, height=600, top='+Number((screen.height/2)-300)+',left='+Number((screen.width/2)-300));
+        this.win = window.open('', 'Title', 'toolbar=no, location=no, directories=no, status=no, menubar=no, scrollbars=yes, resizable=yes, width=600, height=600, top='+Number((screen.height/2)-300)+',left='+Number((screen.width/2)-300));
+    
+        this.setText = function() {
+          this.win.document.body.innerHTML = 'loading...';
+        };
+        
+        this.open = function(url) {
+          this.win.location.href = url;
+        };
+        
+        this.resizeTo = function(width, height) {
+          this.win.window.resizeTo(width, height);
+        };
+        
+        this.moveTo = function(x, y) {
+          this.win.window.moveTo(x, y);
+        };
+        
+        this.close = function() {
+          this.win.close();
+        };    
     }
-    Popup.prototype.setText = function() {
-      this.win.document.body.innerHTML = 'loading...';
-    };
-    Popup.prototype.open = function(url) {
-      this.win.location.href = url;
-    };
-    Popup.prototype.resizeTo = function(width, height) {
-      this.win.window.resizeTo(width, height);
-    };
-    Popup.prototype.moveTo = function(x, y) {
-      this.win.window.moveTo(x, y);
-    };
-    Popup.prototype.close = function() {
-      this.win.close();
-    };
+
 });

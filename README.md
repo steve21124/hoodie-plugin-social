@@ -1,6 +1,6 @@
 # Hoodie Social Plugin
 
-This plugin allows Hoodie app integration with popular social network providers.  Social authentication is currently supported, with many other features planned for the near future - including authorization, status updates, profiles, friends, and activity streams.  Supported providers currently include Facebook, Twitter, and Google.
+This plugin allows Hoodie app integration with popular social network providers.  Social authentication, authorization, and status updates are currently supported, with many other features planned for the near future.  Supported providers currently include Facebook, Twitter, and Google.
 
 The development of this plugin is sponsored by Appback.com - the future home of Hoodie Hosting!
 
@@ -23,6 +23,21 @@ Signin to Hoodie through a social provider
     hoodie.account.socialLogin( providerName )
     .done( successCallback)
     .fail( errorCallback );
+    
+Connect a Hoodie account to a social account (must be logged in)
+
+    hoodie.account.socialConnect( providerName )
+    .done( successCallback)
+    .fail( errorCallback );
+    
+Set status message on connected social account (must be logged in)
+
+    hoodie.account.socialSetStatus({
+        provider: providerName,
+        message: messageText
+    })
+    .done( successCallback)
+    .fail( errorCallback );
 
 ## Sample use
 
@@ -32,27 +47,46 @@ Signin to Hoodie through a social provider
         </head>
         <body style="text-align: center; padding 100px; width: 100%;">
             <p id="welcome">Login with:<br /><a href="javascript:auth('facebook');">Facebook</a> | <a href="javascript:auth('twitter');">Twitter</a> | <a href="javascript:auth('google');">Google</a></p>
+            <p style="display: none;" id="connect">Connect to:<br /><a href="javascript:connect('facebook');">Facebook</a> | <a href="javascript:connect('twitter');">Twitter</a> | <a href="javascript:connect('google');">Google</a></p>
             <p id ="profile"></p>
             <script src="http://code.jquery.com/jquery-1.10.2.min.js"></script>
-            <script src="http://your-host:your-port/_api/_files/hoodie.js"></script>
+            <script src="https://testapp34.appback.com/_api/_files/hoodie.js"></script>
             <script>
-                var hoodie = new Hoodie('http://your-host:your-port');
+                var hoodie = new Hoodie('https://testapp34.appback.com');
                 var auth = function(provider) {
                     $('#welcome').text('Loading...');
                     hoodie.account.socialLogin(provider)
                     .done(function(data) {
+                        //send a test post
+                        hoodie.account.socialSetStatus({
+                            provider: provider,
+                            message: 'I just logged in with a test app.  Please ignore this.  I\'ll surely be deleting it soon!'
+                        }).done(function(data){
+                            console.log(data);
+                        });
+                    
+                        //update some stuff
+                        $('#connect').show();
                         $('#welcome').text('Your Hoodie ID: '+data.id);
                         $('#profile').html(JSON.stringify(data.full_profile));
+                            
                     })
                     .fail(function(error){
                         console.log(error);
                     });
                 }
+                var connect = function(provider) {
+                    hoodie.account.socialConnect(provider)
+                    .done(function(data){
+                        $('#connect').hide();
+                        $('#welcome').append('<br /><br />'+JSON.stringify(data.connections));
+                    });
+                }
             </script>
         </body>
     </html>
-        
-## How it works
+
+## How Login works
 
 The plugin includes a backend component that listens and processes social requests by the Hoodie front-end on a custom port that is reverse proxied by CouchDB.  A cookie session is established with the backend to track the authorization progress and a specific provider auth url is opened in a plugin managed popup window.  The plugin then continuously polls the backend until confirmation and data about the authorization is received.  Upon successful authorization, and subsequent Hoodie sign in, the plugin returns the deferred promise with data about the authentication session and the user.
 
