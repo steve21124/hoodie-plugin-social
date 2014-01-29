@@ -50,9 +50,9 @@ Set status message on connected social account (must be logged in)
             <p style="display: none;" id="connect">Connect to:<br /><a href="javascript:connect('facebook');">Facebook</a> | <a href="javascript:connect('twitter');">Twitter</a> | <a href="javascript:connect('google');">Google</a></p>
             <p id ="profile"></p>
             <script src="http://code.jquery.com/jquery-1.10.2.min.js"></script>
-            <script src="https://testapp34.appback.com/_api/_files/hoodie.js"></script>
+            <script src="https://YOUR-HOST=HERE/_api/_files/hoodie.js"></script>
             <script>
-                var hoodie = new Hoodie('https://testapp34.appback.com');
+                var hoodie = new Hoodie('https://YOUR-HOST=HERE');
                 var auth = function(provider) {
                     $('#welcome').text('Loading...');
                     hoodie.account.socialLogin(provider)
