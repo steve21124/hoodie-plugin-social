@@ -10,7 +10,7 @@ var ports = require('ports');
 var appName = module.parent.filename.match('.*\/(.+?)\/node_modules')[1];
 var facebookStrategy = require('passport-facebook').Strategy;
 var twitterStrategy = require('passport-twitter').Strategy;
-var googleStrategy = require('passport-google').Strategy;
+var googleStrategy = require('passport-google-oauth').OAuth2Strategy;
 var authServer = express();
 var auths = {};
 var host = null;
@@ -124,7 +124,7 @@ module.exports = function (hoodie, cb) {
     });
         
     //setup generic authenticate route (redirect destination from specific provider routes)
-    authServer.get('/auth', function(req, res) {
+    authServer.get('/auth', function(req, res, next) {
         if (passport._strategies[req.query.provider] == undefined) {
             invokeStrategy(req.query.provider, res);
         } else {
@@ -136,28 +136,28 @@ module.exports = function (hoodie, cb) {
                 }
             } else {
                 if (!req.isAuthenticated()) {
-                    passport.authenticate(req.query.provider)(req, res);
+                    passport.authenticate(req.query.provider)(req, res, next);
                 } else {
-                    passport.authorize(req.query.provider)(req, res);
+                    passport.authorize(req.query.provider)(req, res, next);
                 }
             }
         }
     });
     
     //setup facebook specific authenicate and callback routes
-    authServer.get('/auth/facebook', function(req, res) { res.redirect(host+'/auth?provider=facebook'); });
-    authServer.get('/facebook/callback', passport.authenticate('facebook'), function(req, res) {res.redirect(host+'/callback?provider=facebook');});
+    authServer.get('/auth/facebook', function(req, res, next) { res.redirect(host+'/auth?provider=facebook'); });
+    authServer.get('/facebook/callback', passport.authenticate('facebook'), function(req, res, next) {res.redirect(host+'/callback?provider=facebook');});
 
     //setup twitter specific authenicate and callback routes
-    authServer.get('/auth/twitter', function(req, res) { res.redirect(host+'/auth?provider=twitter'); });
-    authServer.get('/twitter/callback', passport.authenticate('twitter'), function(req, res) {res.redirect(host+'/callback?provider=twitter');});
+    authServer.get('/auth/twitter', function(req, res, next) { res.redirect(host+'/auth?provider=twitter'); });
+    authServer.get('/twitter/callback', passport.authenticate('twitter'), function(req, res, next) {res.redirect(host+'/callback?provider=twitter');});
     
     //setup google specific authenicate and callback routes
-    authServer.get('/auth/google', function(req, res) { res.redirect(host+'/auth?provider=google'); });
-    authServer.get('/google/callback', passport.authenticate('google'), function(req, res) {res.redirect(host+'/callback?provider=google');});
+    authServer.get('/auth/google', function(req, res, next) { res.redirect(host+'/auth?provider=google'); });
+    authServer.get('/google/callback', passport.authenticate('google'), function(req, res, next) {res.redirect(host+'/callback?provider=google');});
 
     //setup generic callback route (redirect destination from specific provider routes)
-    authServer.get('/callback', function(req, res) {
+    authServer.get('/callback', function(req, res, next) {
         if (auths[req.session.ref]['id'] == undefined) {
             //if there's no email provided by the provider (like twitter), we will create our own id
             var id = (req.user.emails == undefined) ? req.user.displayName.replace(' ','_').toLowerCase()+'_'+req.user.id : req.user.emails[0].value;
@@ -240,19 +240,29 @@ module.exports = function (hoodie, cb) {
             var settings = config.settings;
             settings['passReqToCallback'] = true;
             settings['failureRedirect'] = '/fail'; //todo - set this route up
+            
             if (provider == 'facebook') {
                 settings['callbackURL'] = host+'/facebook/callback';
                 var providerStrategy = facebookStrategy;
-                var verify = function(req, accessToken,refreshToken,profile,done){ auths[req.session.ref]['connections'][provider] = {token: accessToken};  process.nextTick(function(){return done(null,profile);});}
+                var verify = function(req, accessToken,refreshToken,profile,done){
+                    auths[req.session.ref]['connections'][provider] = {token: accessToken};
+                    process.nextTick(function(){ return done(null,profile); });
+                }
             } else if (provider == 'twitter') {
                 settings['callbackURL'] = host+'/twitter/callback';
                 var providerStrategy = twitterStrategy;
-                var verify = function(req, accessToken,tokenSecret,profile,done){ auths[req.session.ref]['connections'][provider] = {token: accessToken, secret: tokenSecret};  process.nextTick(function(){return done(null,profile);});}
+                var verify = function(req, accessToken,tokenSecret,profile,done){
+                    auths[req.session.ref]['connections'][provider] = {token: accessToken, secret: tokenSecret};
+                    process.nextTick(function(){ return done(null,profile); });
+                }
             } else if (provider == 'google') {
-                settings['returnURL'] = host+'/google/callback';
-                settings['realm'] = host;
+                settings['callbackURL'] = host+'/google/callback';
+                settings['scope'] = ['https://www.googleapis.com/auth/userinfo.profile','https://www.googleapis.com/auth/userinfo.email'];
                 var providerStrategy = googleStrategy;
-                var verify = function(req, identifier,profile,done){process.nextTick(function(){return done(null,profile);});}
+                var verify = function(req, accessToken,tokenSecret,profile,done){
+                    auths[req.session.ref]['connections'][provider] = {token: accessToken, secret: tokenSecret};
+                    process.nextTick(function(){ return done(null,profile); });
+                }
             }
             passport.use(new providerStrategy(settings,verify));
             res.redirect(host+'/auth/'+provider);

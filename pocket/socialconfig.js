@@ -36,6 +36,8 @@ $(function () {
         
         //set Google Values
         $('[name=googleEnabledSelect]').val(doc.config.google_config.enabled+'');
+        $('[name=googleClientID]').val(doc.config.google_config.settings.clientID);
+        $('[name=googleClientSecret]').val(doc.config.google_config.settings.clientSecret);
         
     });
   
@@ -65,6 +67,8 @@ $(function () {
            google_config: {
                enabled: ($('[name=googleEnabledSelect]').val() == 'true'),
                settings: {
+                   clientID: $('[name=googleClientID]').val(),
+                   clientSecret: $('[name=googleClientSecret]').val()
                }
            }
         };

@@ -1,6 +1,6 @@
 {
     "name": "hoodie-plugin-social",
-    "version": "0.5.0",
+    "version": "0.6.0",
     "description": "A plugin to add social integration to Hoodie",
     "author": {
         "name": "Dale Shaw",
@@ -33,7 +33,7 @@
         "ports":"~1.1.0",
         "passport-facebook": "~1.0.2",
         "passport-twitter": "~1.0.2",
-        "passport-google": "~0.3.0",
+        "passport-google-oauth": "~0.1.5",
         "simple-twitter": "~1.0.3",
         "fbgraph": "~0.2.8"
     },
