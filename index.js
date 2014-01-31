@@ -133,7 +133,7 @@ module.exports = function (hoodie, cb) {
             } else if (req.query.provider == 'google') {
                 passport.authenticate(req.query.provider, {
                     accessType: 'offline',
-                    requestVisibleActions: ['https://schemas.google.com/AddActivity','https://schemas.google.com/ReviewActivity'].join(' ')
+                    requestVisibleActions: ['https://schemas.google.com/AddActivity','https://schemas.google.com/BuyActivity','https://schemas.google.com/CheckInActivity','http://schemas.google.com/CommentActivity','https://schemas.google.com/CreateActivity','https://schemas.google.com/DiscoverActivity','https://schemas.google.com/ListenActivity','https://schemas.google.com/ReserveActivity','https://schemas.google.com/ReviewActivity','https://schemas.google.com/WantActivity'].join(' ')
                 } )(req, res, next);
             } else {
                 passport.authenticate(req.query.provider)(req, res, next);

@@ -34,11 +34,7 @@ Set status message on connected social account (must be logged in)
 
     hoodie.account.socialSetStatus({
         provider: providerName,
-        status: {
-            message: messageText,
-            title: titleText, //for Google+ moment
-            image: imageUrl //for Google+ moment
-        }
+        status: status //string for Facebook/Twitter or [payload object](https://developers.google.com/+/api/moment-types/add-activity) for Google+
     })
     .done( successCallback)
     .fail( errorCallback );
@@ -61,13 +57,12 @@ Set status message on connected social account (must be logged in)
                     $('#welcome').text('Loading...');
                     hoodie.account.socialLogin(provider)
                     .done(function(data) {
+                        var status = (provider == 'google') ? {"type":"http://schemas.google.com/DiscoverActivity","target":{"url":"https://developers.google.com/+/web/snippet/examples/thing"}} : 'I just logged in with a test app.  Please ignore this.  I\'ll surely be deleting it soon!';
+                        
                         //send a test post
                         hoodie.account.socialSetStatus({
                             provider: provider,
-                            status: {
-                                title: 'Test Title',
-                                message: 'I just logged in with a test app.  Please ignore this.  I\'ll surely be deleting it soon!'
-                            }
+                            status: status,
                         }).done(function(data){
                             console.log(data);
                         });
@@ -92,7 +87,7 @@ Set status message on connected social account (must be logged in)
             </script>
         </body>
     </html>
-    
+        
 ## How Login works
 
 The plugin includes a backend component that listens and processes social requests by the Hoodie front-end on a custom port that is reverse proxied by CouchDB.  A cookie session is established with the backend to track the authorization progress and a specific provider auth url is opened in a plugin managed popup window.  The plugin then continuously polls the backend until confirmation and data about the authorization is received.  Upon successful authorization, and subsequent Hoodie sign in, the plugin returns the deferred promise with data about the authentication session and the user.

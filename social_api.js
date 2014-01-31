@@ -22,7 +22,7 @@ module.exports = function() {
         //tweet
         this.setStatus = function(status, callback) {
             //post the tweet then fire the callback
-            twitterClient.post('statuses/update', { status : status.message }, callback);
+            twitterClient.post('statuses/update', { status : status }, callback);
         }
     }
     
@@ -37,7 +37,7 @@ module.exports = function() {
         //post
         this.setStatus = function(status, callback) {
             //post to the wall then fire the callback
-            facebookClient.post('me/feed', {message: status.message}, callback);
+            facebookClient.post('me/feed', { message: status }, callback);
         }
     }
     
@@ -49,21 +49,8 @@ module.exports = function() {
         var googleClient = require('googleapis');
         
         //post
-        this.setStatus = function(status, callback) {
+        this.setStatus = function(payload, callback) {
             googleClient.discover('plus', 'v1').execute(function(err, client) {
-                var image = (status.image != undefined) ? status.image : 'http:\/\/www.google.com\/s2\/static\/images\/GoogleyEyes.png';
-                var payload = {
-                  type:'http:\/\/schemas.google.com\/AddActivity',
-                  startDate: moment().format('YYYY-MM-DDTHH:mm:ssZ'),
-                  target: {
-                      id : Math.random().toString(36).slice(2),
-                      image : image,
-                      type : 'http:\/\/schema.org\/CreativeWork',
-                      description : status.message,
-                      name : status.title
-                    }
-                };
-                
                 client.plus.moments.insert({
                      userId: 'me',
                      collection: 'vault',
