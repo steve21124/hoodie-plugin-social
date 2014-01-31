@@ -34,7 +34,7 @@ Set status message on connected social account (must be logged in)
 
     hoodie.account.socialSetStatus({
         provider: providerName,
-        status: status //string for Facebook/Twitter or [payload object](https://developers.google.com/+/api/moment-types/add-activity) for Google+
+        status: status //string for Facebook/Twitter or Google+ moment payload (see https://developers.google.com/+/api/moment-types/add-activity)
     })
     .done( successCallback)
     .fail( errorCallback );
