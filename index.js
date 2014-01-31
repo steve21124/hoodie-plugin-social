@@ -10,7 +10,7 @@ var ports = require('ports');
 var appName = module.parent.filename.match('.*\/(.+?)\/node_modules')[1];
 var facebookStrategy = require('passport-facebook').Strategy;
 var twitterStrategy = require('passport-twitter').Strategy;
-var googleStrategy = require('passport-google-oauth').OAuth2Strategy;
+var googleStrategy = require('passport-google-oauth').OAuth2Strategy; //from git://github.com/z0mt3c/passport-google-oauth.git
 var authServer = express();
 var auths = {};
 var host = null;
@@ -92,7 +92,7 @@ module.exports = function (hoodie, cb) {
                 socialTasks.push(db);
                 
                 //process
-                if (doc.provider && doc.userid && doc.message) {
+                if (doc.provider && doc.userid && doc.status) {
                     var creds = { accessToken: null };
                     
                     hoodie.account.find('user', doc.userid, function(err, data){
@@ -105,7 +105,7 @@ module.exports = function (hoodie, cb) {
                         if (data.connections[doc.provider] != undefined) creds['accessToken'] = data.connections[doc.provider]['token'];
                         
                         var apiClient = new social[doc.provider](creds);
-                        apiClient.setStatus(doc.message, function(err, data){
+                        apiClient.setStatus(doc.status, function(err, data){
                             var response = (err) ? err : data;
                             //clear the lock
                             socialTasks.splice(socialTasks.indexOf(db), 1);
@@ -129,17 +129,14 @@ module.exports = function (hoodie, cb) {
             invokeStrategy(req.query.provider, res);
         } else {
             if (req.query.provider == 'facebook') {
-                if (!req.isAuthenticated()) { //TODO: Do we really need to use authorize()?  It seems like we would get he same reult with authenicate().
-                    passport.authenticate(req.query.provider, { display: 'touch' })(req, res);
-                } else {
-                    passport.authorize(req.query.provider, { display: 'touch' })(req, res);
-                }
+                passport.authenticate(req.query.provider, { display: 'touch' })(req, res);
+            } else if (req.query.provider == 'google') {
+                passport.authenticate(req.query.provider, {
+                    accessType: 'offline',
+                    requestVisibleActions: ['https://schemas.google.com/AddActivity','https://schemas.google.com/ReviewActivity'].join(' ')
+                } )(req, res, next);
             } else {
-                if (!req.isAuthenticated()) {
-                    passport.authenticate(req.query.provider)(req, res, next);
-                } else {
-                    passport.authorize(req.query.provider)(req, res, next);
-                }
+                passport.authenticate(req.query.provider)(req, res, next);
             }
         }
     });
@@ -257,7 +254,18 @@ module.exports = function (hoodie, cb) {
                 }
             } else if (provider == 'google') {
                 settings['callbackURL'] = host+'/google/callback';
-                settings['scope'] = ['https://www.googleapis.com/auth/userinfo.profile','https://www.googleapis.com/auth/userinfo.email'];
+                settings['scope'] = [
+                    'https://www.googleapis.com/auth/userinfo.profile',
+                    'https://www.googleapis.com/auth/userinfo.email',
+                    'https://www.googleapis.com/auth/plus.me',
+                    'https://www.googleapis.com/auth/plus.media.upload',
+                    'https://www.googleapis.com/auth/plus.profiles.read',
+                    'https://www.googleapis.com/auth/plus.stream.read',
+                    'https://www.googleapis.com/auth/plus.stream.write',
+                    'https://www.googleapis.com/auth/plus.circles.read',
+                    'https://www.googleapis.com/auth/plus.circles.write',
+                    'https://www.googleapis.com/auth/plus.login'
+                ];
                 var providerStrategy = googleStrategy;
                 var verify = function(req, accessToken,tokenSecret,profile,done){
                     auths[req.session.ref]['connections'][provider] = {token: accessToken, secret: tokenSecret};

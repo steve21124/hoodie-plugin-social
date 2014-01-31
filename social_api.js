@@ -3,6 +3,7 @@
  */
 
 var twitterAPI = require('simple-twitter');
+var moment = require('moment');
 
 module.exports = function() {
     /*
@@ -19,9 +20,9 @@ module.exports = function() {
         );
         
         //tweet
-        this.setStatus = function(message, callback) {
+        this.setStatus = function(status, callback) {
             //post the tweet then fire the callback
-            twitterClient.post('statuses/update', { status : message }, callback);
+            twitterClient.post('statuses/update', { status : status.message }, callback);
         }
     }
     
@@ -34,9 +35,9 @@ module.exports = function() {
         facebookClient.setAccessToken(creds.accessToken);
         
         //post
-        this.setStatus = function(message, callback) {
+        this.setStatus = function(status, callback) {
             //post to the wall then fire the callback
-            facebookClient.post('me/feed', {message: message}, callback);
+            facebookClient.post('me/feed', {message: status.message}, callback);
         }
     }
     
@@ -45,12 +46,31 @@ module.exports = function() {
     */
     this.google = function(creds) {
         //establish a new facebook client
-        //TODO: find google plus api module or bake our own
-    
+        var googleClient = require('googleapis');
+        
         //post
-        this.setStatus = function(message, callback) {
-            //throw an error
-            callback('The Google Plus api does not support status updates.');
+        this.setStatus = function(status, callback) {
+            googleClient.discover('plus', 'v1').execute(function(err, client) {
+                var image = (status.image != undefined) ? status.image : 'http:\/\/www.google.com\/s2\/static\/images\/GoogleyEyes.png';
+                var payload = {
+                  type:'http:\/\/schemas.google.com\/AddActivity',
+                  startDate: moment().format('YYYY-MM-DDTHH:mm:ssZ'),
+                  target: {
+                      id : Math.random().toString(36).slice(2),
+                      image : image,
+                      type : 'http:\/\/schema.org\/CreativeWork',
+                      description : status.message,
+                      name : status.title
+                    }
+                };
+                
+                client.plus.moments.insert({
+                     userId: 'me',
+                     collection: 'vault',
+                     access_token: creds.accessToken
+                  }, payload)
+                 .execute(callback);
+            });
         }
     }
     

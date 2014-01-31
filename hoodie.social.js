@@ -36,7 +36,7 @@ Hoodie.extend(function(hoodie) {
         var attrs = {
             userid: hoodie.account.username,
             provider: options.provider,
-            message: options.message
+            status: options.status
         };
         var defer = hoodie.defer();
         var promise = hoodie.task.start('setstatus', attrs);
