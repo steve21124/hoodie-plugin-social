@@ -34,7 +34,11 @@ Set status message on connected social account (must be logged in)
 
     hoodie.account.socialSetStatus({
         provider: providerName,
-        message: messageText
+        status: {
+            message: messageText,
+            title: titleText, //for Google+ moment
+            image: imageUrl //for Google+ moment
+        }
     })
     .done( successCallback)
     .fail( errorCallback );
@@ -46,13 +50,13 @@ Set status message on connected social account (must be logged in)
             <meta http-equiv="Content-type" content="text/html;charset=UTF-8">
         </head>
         <body style="text-align: center; padding 100px; width: 100%;">
-            <p id="welcome">Login with:<br /><a href="javascript:auth('facebook');">Facebook</a> | <a href="javascript:auth('twitter');">Twitter</a> | <a href="javascript:auth('google');">Google</a></p>
+            <p id="welcome">Login with:<br /><a href="javascript:auth('facebook');">Facebook</a> | <a href="javascript:auth('twitter');">Twitter</a> | <a href="javascript:auth('google');">Google Plus</a></p>
             <p style="display: none;" id="connect">Connect to:<br /><a href="javascript:connect('facebook');">Facebook</a> | <a href="javascript:connect('twitter');">Twitter</a> | <a href="javascript:connect('google');">Google</a></p>
             <p id ="profile"></p>
             <script src="http://code.jquery.com/jquery-1.10.2.min.js"></script>
-            <script src="https://YOUR-HOST=HERE/_api/_files/hoodie.js"></script>
+            <script src="https://YOUR-HOST-HERE/_api/_files/hoodie.js"></script>
             <script>
-                var hoodie = new Hoodie('https://YOUR-HOST=HERE');
+                var hoodie = new Hoodie('https://YOUR-HOST-HERE');
                 var auth = function(provider) {
                     $('#welcome').text('Loading...');
                     hoodie.account.socialLogin(provider)
@@ -60,7 +64,10 @@ Set status message on connected social account (must be logged in)
                         //send a test post
                         hoodie.account.socialSetStatus({
                             provider: provider,
-                            message: 'I just logged in with a test app.  Please ignore this.  I\'ll surely be deleting it soon!'
+                            status: {
+                                title: 'Test Title',
+                                message: 'I just logged in with a test app.  Please ignore this.  I\'ll surely be deleting it soon!'
+                            }
                         }).done(function(data){
                             console.log(data);
                         });
@@ -85,7 +92,7 @@ Set status message on connected social account (must be logged in)
             </script>
         </body>
     </html>
-
+    
 ## How Login works
 
 The plugin includes a backend component that listens and processes social requests by the Hoodie front-end on a custom port that is reverse proxied by CouchDB.  A cookie session is established with the backend to track the authorization progress and a specific provider auth url is opened in a plugin managed popup window.  The plugin then continuously polls the backend until confirmation and data about the authorization is received.  Upon successful authorization, and subsequent Hoodie sign in, the plugin returns the deferred promise with data about the authentication session and the user.
