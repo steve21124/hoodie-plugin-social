@@ -1,6 +1,6 @@
 # Hoodie Social Plugin
 
-This plugin allows Hoodie app integration with popular social network providers.  Social authentication, authorization, and status updates are currently supported, with many other features planned for the near future.  Supported providers currently include Facebook, Twitter, and Google+.
+This plugin allows Hoodie app integration with popular social network providers.  Social authentication, authorization, status updates, get contacts, and get followers are currently supported.  Supported providers currently include Facebook, Twitter, and Google+.
 
 The development of this plugin is sponsored by Appback.com - the future home of Hoodie Hosting!
 
