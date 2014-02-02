@@ -38,6 +38,18 @@ Set status message on connected social account (must be logged in)
     })
     .done( successCallback)
     .fail( errorCallback );
+    
+Get a user social profile from a connected provider (defaults to current user)
+
+    hoodie.account.socialGetProfile(provider, /*optional*/{
+        /*
+        * Supply one of these to get the profile of a different user
+        * user_id: userId //provider user ID
+        * user_name: userName //provider display or screen name
+        */
+    })
+    .done( successCallback)
+    .fail( errorCallback );
 
 ## Sample use
 
@@ -78,16 +90,26 @@ Set status message on connected social account (must be logged in)
                     });
                 }
                 var connect = function(provider) {
+                    console.log('fired connect');
                     hoodie.account.socialConnect(provider)
                     .done(function(data){
+                        console.log('fired connect done');
                         $('#connect').hide();
                         $('#welcome').append('<br /><br />'+JSON.stringify(data.connections));
+                    })
+                    .then(function(){
+                        console.log('fired connect then');
+                        //get the users profile
+                        hoodie.account.socialGetProfile(provider)
+                        .done(function(data){
+                            console.log(data);
+                        });
                     });
                 }
             </script>
         </body>
     </html>
-        
+            
 ## How Login works
 
 The plugin includes a backend component that listens and processes social requests by the Hoodie front-end on a custom port that is reverse proxied by CouchDB.  A cookie session is established with the backend to track the authorization progress and a specific provider auth url is opened in a plugin managed popup window.  The plugin then continuously polls the backend until confirmation and data about the authorization is received.  Upon successful authorization, and subsequent Hoodie sign in, the plugin returns the deferred promise with data about the authentication session and the user.

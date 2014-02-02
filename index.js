@@ -84,44 +84,74 @@ module.exports = function (hoodie, cb) {
     //listen for tasks to set status
     var social = new socialApi();
     hoodie.task.on('add:setstatus', function (db, doc) {
-        var process = function() {
-            if (socialTasks.indexOf(db) > -1) {
-                setTimeout(process,50);
-            } else  {
-                //lock (to avoid the rare case of concurrent conflicting writes)
-                socialTasks.push(db);
+        if (socialTasks.indexOf(doc.id) > -1) return false;
+        socialTasks.push(doc.id); //only try to process once (workaround for mutiple repeated calls)
                 
-                //process
-                if (doc.provider && doc.userid && doc.status) {
-                    var creds = { accessToken: null };
-                    
-                    hoodie.account.find('user', doc.userid, function(err, data){
-                        if (doc.provider == 'twitter') {
-                            var providerConfig = hoodie.config.get('twitter_config');
-                            creds['consumerKey'] = providerConfig.settings.consumerKey;
-                            creds['consumerSecret'] = providerConfig.settings.consumerSecret;
-                            creds['accessSecret'] = data.connections[doc.provider]['secret'];
-                        }
-                        if (data.connections[doc.provider] != undefined) creds['accessToken'] = data.connections[doc.provider]['token'];
-                        
-                        var apiClient = new social[doc.provider](creds);
-                        apiClient.setStatus(doc.status, function(err, data){
-                            var response = (err) ? err : data;
-                            //clear the lock
-                            socialTasks.splice(socialTasks.indexOf(db), 1);
-                            
-                            //mimic a 'hoodie.task.success(db, doc)' but add the doneData object
-                            doc['$processedAt'] = moment().format();
-                            doc['_deleted'] = true;
-                            doc['doneData'] = response;
-                            hoodie.database(db).update(doc.type, doc.id, doc, function(err, data){ if(err) console.log(err); });
-                        });
-                    });
+        //process
+        if (doc.provider && doc.userid && doc.status) {
+            var creds = { accessToken: null };
+            
+            hoodie.account.find('user', doc.userid, function(err, data){
+                if (doc.provider == 'twitter') {
+                    var providerConfig = hoodie.config.get('twitter_config');
+                    creds['consumerKey'] = providerConfig.settings.consumerKey;
+                    creds['consumerSecret'] = providerConfig.settings.consumerSecret;
+                    creds['accessSecret'] = data.connections[doc.provider]['secret'];
+                    creds['id'] = data.connections[doc.provider]['id'];
                 }
-            }
+                if (data.connections[doc.provider] != undefined) creds['accessToken'] = data.connections[doc.provider]['token'];
+                
+                var apiClient = new social[doc.provider](creds);
+                apiClient.setStatus(doc.status, function(err, data){
+                    var response = (err) ? err : data;
+                    //clear the lock
+                    socialTasks.splice(socialTasks.indexOf(doc.id), 1);
+                    
+                    //mimic a 'hoodie.task.success(db, doc)' but add the doneData object
+                    doc['$processedAt'] = moment().format();
+                    doc['_deleted'] = true;
+                    doc['doneData'] = response;
+                    hoodie.database(db).update(doc.type, doc.id, doc, function(err, data){ if(err) console.log(err); });
+                });
+            });
         }
-        process();
     });
+    
+    //listen for getprofile tasks
+    hoodie.task.on('add:getprofile', function (db, doc) {
+        if (socialTasks.indexOf(doc.id) > -1) return false;
+        socialTasks.push(doc.id); //only try to process once (workaround for mutiple repeated calls)
+            
+        //process
+        if (doc.provider && doc.userid) {
+            var creds = { accessToken: null };
+            
+            hoodie.account.find('user', doc.userid, function(err, data){
+                if (doc.provider == 'twitter') {
+                    var providerConfig = hoodie.config.get('twitter_config');
+                    creds['consumerKey'] = providerConfig.settings.consumerKey;
+                    creds['consumerSecret'] = providerConfig.settings.consumerSecret;
+                    creds['accessSecret'] = data.connections[doc.provider]['secret'];
+                    creds['id'] = data.connections[doc.provider]['id'];
+                }
+                if (data.connections[doc.provider] != undefined) creds['accessToken'] = data.connections[doc.provider]['token'];
+                
+                var apiClient = new social[doc.provider](creds);
+                apiClient.getProfile(doc.options, function(err, data){
+                    var response = (err) ? err : data;
+                    //clear the lock
+                    socialTasks.splice(socialTasks.indexOf(doc.id), 1);
+
+                    //mimic a 'hoodie.task.success(db, doc)' but add the doneData object
+                    doc['$processedAt'] = moment().format();
+                    doc['_deleted'] = true;
+                    doc['doneData'] = response;
+                    hoodie.database(db).update(doc.type, doc.id, doc, function(err, data){ if(err) console.log(err); });
+                });
+            });
+        }
+    });
+    
         
     //setup generic authenticate route (redirect destination from specific provider routes)
     authServer.get('/auth', function(req, res, next) {
@@ -249,7 +279,7 @@ module.exports = function (hoodie, cb) {
                 settings['callbackURL'] = host+'/twitter/callback';
                 var providerStrategy = twitterStrategy;
                 var verify = function(req, accessToken,tokenSecret,profile,done){
-                    auths[req.session.ref]['connections'][provider] = {token: accessToken, secret: tokenSecret};
+                    auths[req.session.ref]['connections'][provider] = {token: accessToken, secret: tokenSecret, id: profile.id};
                     process.nextTick(function(){ return done(null,profile); });
                 }
             } else if (provider == 'google') {

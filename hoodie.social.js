@@ -46,6 +46,22 @@ Hoodie.extend(function(hoodie) {
     }
     
     /*
+    *   Social Get Profile method
+    */
+    hoodie.account.socialGetProfile = function(provider, /*optional*/options) {
+        var attrs = {
+            userid: hoodie.account.username,
+            provider: provider
+        };
+        if (options) attrs['options'] = options;
+        var defer = hoodie.defer();
+        var promise = hoodie.task.start('getprofile', attrs);
+        promise.then(function(data){ defer.resolve(data.doneData); });
+        promise.fail(function(data){ defer.reject(); });
+        return defer.promise();
+    }
+    
+    /*
     *   Internal methods
     */
     function awaitNewAuth(options) {
