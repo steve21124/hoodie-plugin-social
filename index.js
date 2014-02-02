@@ -89,29 +89,13 @@ module.exports = function (hoodie, cb) {
                 
         //process
         if (doc.provider && doc.userid && doc.status) {
-            var creds = { accessToken: null };
-            
-            hoodie.account.find('user', doc.userid, function(err, data){
-                if (doc.provider == 'twitter') {
-                    var providerConfig = hoodie.config.get('twitter_config');
-                    creds['consumerKey'] = providerConfig.settings.consumerKey;
-                    creds['consumerSecret'] = providerConfig.settings.consumerSecret;
-                    creds['accessSecret'] = data.connections[doc.provider]['secret'];
-                    creds['id'] = data.connections[doc.provider]['id'];
-                }
-                if (data.connections[doc.provider] != undefined) creds['accessToken'] = data.connections[doc.provider]['token'];
-                
+            getSocialCreds(doc.userid, doc.provider, function(creds){
                 var apiClient = new social[doc.provider](creds);
                 apiClient.setStatus(doc.status, function(err, data){
                     var response = (err) ? err : data;
-                    //clear the lock
-                    socialTasks.splice(socialTasks.indexOf(doc.id), 1);
                     
-                    //mimic a 'hoodie.task.success(db, doc)' but add the doneData object
-                    doc['$processedAt'] = moment().format();
-                    doc['_deleted'] = true;
-                    doc['doneData'] = response;
-                    hoodie.database(db).update(doc.type, doc.id, doc, function(err, data){ if(err) console.log(err); });
+                    //complete the task
+                    completeSocialTask(db, doc, response);
                 });
             });
         }
@@ -124,35 +108,56 @@ module.exports = function (hoodie, cb) {
             
         //process
         if (doc.provider && doc.userid) {
-            var creds = { accessToken: null };
-            
-            hoodie.account.find('user', doc.userid, function(err, data){
-                if (doc.provider == 'twitter') {
-                    var providerConfig = hoodie.config.get('twitter_config');
-                    creds['consumerKey'] = providerConfig.settings.consumerKey;
-                    creds['consumerSecret'] = providerConfig.settings.consumerSecret;
-                    creds['accessSecret'] = data.connections[doc.provider]['secret'];
-                    creds['id'] = data.connections[doc.provider]['id'];
-                }
-                if (data.connections[doc.provider] != undefined) creds['accessToken'] = data.connections[doc.provider]['token'];
-                
+            getSocialCreds(doc.userid, doc.provider, function(creds){
                 var apiClient = new social[doc.provider](creds);
                 apiClient.getProfile(doc.options, function(err, data){
                     var response = (err) ? err : data;
-                    //clear the lock
-                    socialTasks.splice(socialTasks.indexOf(doc.id), 1);
-
-                    //mimic a 'hoodie.task.success(db, doc)' but add the doneData object
-                    doc['$processedAt'] = moment().format();
-                    doc['_deleted'] = true;
-                    doc['doneData'] = response;
-                    hoodie.database(db).update(doc.type, doc.id, doc, function(err, data){ if(err) console.log(err); });
+                    
+                    //complete the task
+                    completeSocialTask(db, doc, response);
                 });
             });
         }
     });
     
-        
+    //listen for getcontacts tasks
+    hoodie.task.on('add:getcontacts', function (db, doc) {
+        if (socialTasks.indexOf(doc.id) > -1) return false;
+        socialTasks.push(doc.id); //only try to process once (workaround for mutiple repeated calls)
+            
+        //process
+        if (doc.provider && doc.userid) {
+            getSocialCreds(doc.userid, doc.provider, function(creds){
+                var apiClient = new social[doc.provider](creds);
+                apiClient.getContacts(doc.options, function(err, data){
+                    var response = (err) ? err : data;
+                    
+                    //complete the task
+                    completeSocialTask(db, doc, response);
+                });
+            });
+        }
+    });
+    
+    //listen for getfollowers tasks
+    hoodie.task.on('add:getfollowers', function (db, doc) {
+        if (socialTasks.indexOf(doc.id) > -1) return false;
+        socialTasks.push(doc.id); //only try to process once (workaround for mutiple repeated calls)
+            
+        //process
+        if (doc.provider && doc.userid) {
+            getSocialCreds(doc.userid, doc.provider, function(creds){
+                var apiClient = new social[doc.provider](creds);
+                apiClient.getFollowers(doc.options, function(err, data){
+                    var response = (err) ? err : data;
+                    
+                    //complete the task
+                    completeSocialTask(db, doc, response);
+                });
+            });
+        }
+    });
+            
     //setup generic authenticate route (redirect destination from specific provider routes)
     authServer.get('/auth', function(req, res, next) {
         if (passport._strategies[req.query.provider] == undefined) {
@@ -333,6 +338,34 @@ module.exports = function (hoodie, cb) {
         if (options.id) auths[ref]['id'] = options.id;
         
         callback(ref);
+    }
+    
+    //function to get credentials
+    function getSocialCreds(userid, provider, callback) {
+        var creds = { accessToken: null };
+        hoodie.account.find('user', userid, function(err, data){
+            if (provider == 'twitter') {
+                var providerConfig = hoodie.config.get('twitter_config');
+                creds['consumerKey'] = providerConfig.settings.consumerKey;
+                creds['consumerSecret'] = providerConfig.settings.consumerSecret;
+                creds['accessSecret'] = data.connections[provider]['secret'];
+                creds['id'] = data.connections[provider]['id'];
+            }
+            if (data.connections[provider] != undefined) creds['accessToken'] = data.connections[provider]['token'];
+            callback(creds);
+        });
+    }
+    
+    //function to complete a social task and send back doneData
+    function completeSocialTask(db, doc, doneData) {
+        //clear the lock
+        socialTasks.splice(socialTasks.indexOf(doc.id), 1);
+
+        //mimic a 'hoodie.task.success(db, doc)' but add the doneData object
+        doc['$processedAt'] = moment().format();
+        doc['_deleted'] = true;
+        doc['doneData'] = doneData;
+        hoodie.database(db).update(doc.type, doc.id, doc, function(err, data){ if(err) console.log(err); });
     }
     
     //start the server on load

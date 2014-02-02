@@ -50,6 +50,30 @@ Get a user social profile from a connected provider (defaults to current user)
     })
     .done( successCallback)
     .fail( errorCallback );
+    
+Get a user's contacts (aka friends or following) from a connected provider (defaults to current user)
+
+    hoodie.account.socialGetContacts(provider, /*optional*/{
+        /*
+        * Supply one of these to get the contacts of a different user
+        * user_id: userId //provider user ID
+        * user_name: userName //provider display or screen name
+        */
+    })
+    .done( successCallback)
+    .fail( errorCallback );
+    
+Get a user's followers (aka subscribers) from a connected provider (defaults to current user)
+
+    hoodie.account.socialGetFollowers(provider, /*optional*/{
+        /*
+        * Supply one of these to get the followers of a different user
+        * user_id: userId //provider user ID
+        * user_name: userName //provider display or screen name
+        */
+    })
+    .done( successCallback)
+    .fail( errorCallback );
 
 ## Sample use
 
@@ -90,17 +114,26 @@ Get a user social profile from a connected provider (defaults to current user)
                     });
                 }
                 var connect = function(provider) {
-                    console.log('fired connect');
                     hoodie.account.socialConnect(provider)
                     .done(function(data){
-                        console.log('fired connect done');
                         $('#connect').hide();
                         $('#welcome').append('<br /><br />'+JSON.stringify(data.connections));
                     })
                     .then(function(){
-                        console.log('fired connect then');
                         //get the users profile
                         hoodie.account.socialGetProfile(provider)
+                        .done(function(data){
+                            console.log(data);
+                        });
+                        
+                        //get the users friends (aka people they follow)
+                        hoodie.account.socialGetContacts(provider)
+                        .done(function(data){
+                            console.log(data);
+                        });
+                        
+                        //get the users followers (aka subscribers)
+                        hoodie.account.socialGetFollowers(provider)
                         .done(function(data){
                             console.log(data);
                         });
@@ -109,7 +142,7 @@ Get a user social profile from a connected provider (defaults to current user)
             </script>
         </body>
     </html>
-            
+                
 ## How Login works
 
 The plugin includes a backend component that listens and processes social requests by the Hoodie front-end on a custom port that is reverse proxied by CouchDB.  A cookie session is established with the backend to track the authorization progress and a specific provider auth url is opened in a plugin managed popup window.  The plugin then continuously polls the backend until confirmation and data about the authorization is received.  Upon successful authorization, and subsequent Hoodie sign in, the plugin returns the deferred promise with data about the authentication session and the user.
