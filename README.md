@@ -86,9 +86,13 @@ Get a user's followers (aka subscribers) from a connected provider (defaults to 
             <p style="display: none;" id="connect">Connect to:<br /><a href="javascript:connect('facebook');">Facebook</a> | <a href="javascript:connect('twitter');">Twitter</a> | <a href="javascript:connect('google');">Google</a></p>
             <p id ="profile"></p>
             <script src="http://code.jquery.com/jquery-1.10.2.min.js"></script>
-            <script src="https://YOUR-HOST-HERE/_api/_files/hoodie.js"></script>
+            <script src="https://testapp34.appback.com/_api/_files/hoodie.js"></script>
             <script>
-                var hoodie = new Hoodie('https://YOUR-HOST-HERE');
+                var hoodie = new Hoodie('https://testapp34.appback.com');
+                
+                //start fresh
+                hoodie.account.signOut();
+                
                 var auth = function(provider) {
                     $('#welcome').text('Loading...');
                     hoodie.account.socialLogin(provider)
@@ -119,6 +123,9 @@ Get a user's followers (aka subscribers) from a connected provider (defaults to 
                         $('#connect').hide();
                         $('#welcome').append('<br /><br />'+JSON.stringify(data.connections));
                     })
+                    .fail(function(error){
+                        console.log(error);
+                    })
                     .then(function(){
                         //get the users profile
                         hoodie.account.socialGetProfile(provider)
@@ -142,7 +149,7 @@ Get a user's followers (aka subscribers) from a connected provider (defaults to 
             </script>
         </body>
     </html>
-                
+                    
 ## How Login works
 
 The plugin includes a backend component that listens and processes social requests by the Hoodie front-end on a custom port that is reverse proxied by CouchDB.  A cookie session is established with the backend to track the authorization progress and a specific provider auth url is opened in a plugin managed popup window.  The plugin then continuously polls the backend until confirmation and data about the authorization is received.  Upon successful authorization, and subsequent Hoodie sign in, the plugin returns the deferred promise with data about the authentication session and the user.
