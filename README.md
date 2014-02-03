@@ -86,9 +86,9 @@ Get a user's followers (aka subscribers) from a connected provider (defaults to 
             <p style="display: none;" id="connect">Connect to:<br /><a href="javascript:connect('facebook');">Facebook</a> | <a href="javascript:connect('twitter');">Twitter</a> | <a href="javascript:connect('google');">Google</a></p>
             <p id ="profile"></p>
             <script src="http://code.jquery.com/jquery-1.10.2.min.js"></script>
-            <script src="https://testapp34.appback.com/_api/_files/hoodie.js"></script>
+            <script src="https://YOUR-HOST-HERE/_api/_files/hoodie.js"></script>
             <script>
-                var hoodie = new Hoodie('https://testapp34.appback.com');
+                var hoodie = new Hoodie('https://YOUR-HOST-HERE');
                 
                 //start fresh
                 hoodie.account.signOut();
