@@ -71,12 +71,12 @@ module.exports = function (hoodie, cb) {
         
         //either send the current auth object or create one
         if ((req.session.ref != undefined) && (auths[req.session.ref] != undefined)) {
-            res.send(auths[req.session.ref]);
+            res.send(scrubAuthObj(auths[req.session.ref]));
             delete auths[req.session.ref]['temp_pass']; //only give it once!
         } else {
             setAuthObj({method: req.query.method, id: req.query.userid}, function(ref) {
                 req.session.ref = ref;
-                res.send(auths[req.session.ref]);
+                res.send(scrubAuthObj(auths[req.session.ref]));
             });
         }
     });
@@ -221,8 +221,9 @@ module.exports = function (hoodie, cb) {
                 
                 //always update connections
                 var connections = (data.connections) ? data.connections : {};
-                connections[req.query.provider] = auths[req.session.ref]['connections'][req.query.provider];
-                updateVals['connections'] = connections;
+                connections[req.query.provider] = auths[req.session.ref]['connections'][req.query.provider]; //first update from the stored connections
+                auths[req.session.ref]['connections'] = connections; //then feed the complete obeject back to the authObject
+                updateVals['connections'] = connections; //and make sure we store the latest
                                 
                 //update values
                 hoodie.account.update('user', id, updateVals, function(err, data){ console.log(data); });
@@ -366,6 +367,20 @@ module.exports = function (hoodie, cb) {
         doc['_deleted'] = true;
         doc['doneData'] = doneData;
         hoodie.database(db).update(doc.type, doc.id, doc, function(err, data){ if(err) console.log(err); });
+    }
+    
+    //function to filter out any data we don't want to pass back to the front end
+    function scrubAuthObj(authObj) {
+        //remove token data
+        if (authObj.connections.facebook) authObj.connections.facebook = true;
+        if (authObj.connections.twitter) authObj.connections.twitter = true;
+        if (authObj.connections.google) authObj.connections.google = true;
+        
+        //remove other unecessary object data
+        if (authObj.method == 'connect') delete authObj.authenticated;
+        if (authObj.complete) delete authObj.auth_urls;
+        
+        return authObj;
     }
     
     //start the server on load
