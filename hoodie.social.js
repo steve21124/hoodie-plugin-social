@@ -163,6 +163,7 @@ Hoodie.extend(function(hoodie) {
                                 })
                                 .fail( function(failData){
                                     settings.defer.reject(new Error('signin'));
+                                    console.log(failData);
                                 });
                             } else if (data.method == 'connect' && data.complete && data.connections[settings.provider]) {
                                 settings.popup.close();

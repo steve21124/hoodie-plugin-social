@@ -371,16 +371,18 @@ module.exports = function (hoodie, cb) {
     
     //function to filter out any data we don't want to pass back to the front end
     function scrubAuthObj(authObj) {
+        authObjCleaned = authObj;
+        
         //remove token data
-        if (authObj.connections.facebook) authObj.connections.facebook = true;
-        if (authObj.connections.twitter) authObj.connections.twitter = true;
-        if (authObj.connections.google) authObj.connections.google = true;
+        if (authObjCleaned.connections.facebook) authObj.connections.facebook = true;
+        if (authObjCleaned.connections.twitter) authObj.connections.twitter = true;
+        if (authObjCleaned.connections.google) authObj.connections.google = true;
         
         //remove other unecessary object data
-        if (authObj.method == 'connect') delete authObj.authenticated;
-        if (authObj.complete) delete authObj.auth_urls;
+        if (authObjCleaned.method == 'connect') delete authObj.authenticated;
+        if (authObjCleaned.complete) delete authObj.auth_urls;
         
-        return authObj;
+        return authObjCleaned;
     }
     
     //start the server on load
