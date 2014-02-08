@@ -195,21 +195,21 @@ Hoodie.extend(function(hoodie) {
     };
     
     function isPhoneGap() {
-        return (cordova || PhoneGap || phonegap) 
+        return (window.cordova || window.PhoneGap || window.phonegap)
         && /^file:\/{3}[^\/]/i.test(window.location.href) 
         && /ios|iphone|ipod|ipad|android/i.test(navigator.userAgent);
     }
     
     // little popup helper class
     var Popup = function() {
-        this.win = (isPhoneGap) ? null : window.open('', 'Title', 'toolbar=no, location=no, directories=no, status=no, menubar=no, scrollbars=yes, resizable=yes, width=600, height=600, top='+Number((screen.height/2)-300)+',left='+Number((screen.width/2)-300));
+        this.win = (isPhoneGap()) ? null : window.open('', 'Title', 'toolbar=no, location=no, directories=no, status=no, menubar=no, scrollbars=yes, resizable=yes, width=600, height=600, top='+Number((screen.height/2)-300)+',left='+Number((screen.width/2)-300));
     
         this.setText = function() {
-          if (!isPhoneGap) this.win.document.body.innerHTML = 'loading...';
+          if (!isPhoneGap()) this.win.document.body.innerHTML = 'loading...';
         };
         
         this.open = function(url) {
-            if (isPhoneGap) {
+            if (isPhoneGap()) {
                 this.win = window.open(encodeURI(url), '_blank', 'location=yes');
             } else {
                 this.win.location.href = url;
