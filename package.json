@@ -1,54 +1,47 @@
 {
-  "name": "hoodie-plugin-social",
-  "version": "0.9.6",
-  "description": "A plugin to add social integration to Hoodie",
-  "author": {
-    "name": "Dale Shaw",
-    "email": "dale@xiatron.com",
-    "url": "https://appback.com"
-  },
-  "contributors": [
-    {
-      "name": "Dale Shaw",
-      "email": "dale@xiatron.com",
-      "url": "https://appback.com"
-    }
-  ],
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/inator/hoodie-plugin-social"
-  },
-  "keywords": [
-    "hoodie",
-    "social",
-    "authentication"
-  ],
-  "homepage": "https://github.com/inator/hoodie-plugin-social",
-  "bugs": {
-    "url": "https://github.com/inator/hoodie-plugin-social/issues"
-  },
-  "dependencies": {
-    "express": "~3.4.4",
-    "passport": "~0.1.17",
-    "ports": "~1.1.0",
-    "passport-facebook": "~1.0.2",
-    "passport-twitter": "~1.0.2",
-    "public": "git://github.com/z0mt3c/passport-google-oauth.git",
-    "ntwitter": "~0.5.0",
-    "fbgraph": "~0.2.8",
-    "moment": "~2.4.0",
-    "googleapis": "0.6.1"
-  },
-  "peerDependencies": {
-    "hoodie-server": "~0.8.14"
-  },
-  "main": "index.js",
-  "readmeFilename": "README.md",
-  "readme": "# Hoodie Social Plugin\n\nThis plugin allows Hoodie app integration with popular social network providers.  Social authentication, authorization, status updates, get contacts, and get followers are currently supported.  Supported providers currently include Facebook, Twitter, and Google+.\n\nThe development of this plugin is sponsored by Appback.com - the future home of Hoodie Hosting!\n\nPlease note:  This plugin is under major development and we are actively experimenting to identify the best ways of integrating with Hoodie.  Use at your own risk.\n\n## Installation\n\nInstall from the Hoodie CLI\n\n    hoodie install social\n\n## Configuration\n\nOpen Pocket, add your provider Key/ID & Secret, then save.\n\n## Methods\n\nSignin to Hoodie through a social provider\n\n    hoodie.account.socialLogin( providerName )\n    .done( successCallback)\n    .fail( errorCallback );\n    \nConnect a Hoodie account to a social account (must be logged in)\n\n    hoodie.account.socialConnect( providerName )\n    .done( successCallback)\n    .fail( errorCallback );\n    \nSet status message on connected social account (must be logged in)\n\n    hoodie.account.socialSetStatus({\n        provider: providerName,\n        status: status //string for Facebook/Twitter or Google+ moment payload (see https://developers.google.com/+/api/moment-types/add-activity)\n    })\n    .done( successCallback)\n    .fail( errorCallback );\n    \nGet a user social profile from a connected provider (defaults to current user)\n\n    hoodie.account.socialGetProfile(provider, /*optional*/{\n        /*\n        * Supply one of these to get the profile of a different user\n        * user_id: userId //provider user ID\n        * user_name: userName //provider display or screen name\n        */\n    })\n    .done( successCallback)\n    .fail( errorCallback );\n    \nGet a user's contacts (aka friends or following) from a connected provider (defaults to current user)\n\n    hoodie.account.socialGetContacts(provider, /*optional*/{\n        /*\n        * Supply one of these to get the contacts of a different user\n        * user_id: userId //provider user ID\n        * user_name: userName //provider display or screen name\n        */\n    })\n    .done( successCallback)\n    .fail( errorCallback );\n    \nGet a user's followers (aka subscribers) from a connected provider (defaults to current user)\n\n    hoodie.account.socialGetFollowers(provider, /*optional*/{\n        /*\n        * Supply one of these to get the followers of a different user\n        * user_id: userId //provider user ID\n        * user_name: userName //provider display or screen name\n        */\n    })\n    .done( successCallback)\n    .fail( errorCallback );\n\n## Sample use\n\n    <!DOCTYPE html>\n        <head>\n            <meta http-equiv=\"Content-type\" content=\"text/html;charset=UTF-8\">\n        </head>\n        <body style=\"text-align: center; padding 100px; width: 100%;\">\n            <p id=\"welcome\">Login with:<br /><a href=\"javascript:auth('facebook');\">Facebook</a> | <a href=\"javascript:auth('twitter');\">Twitter</a> | <a href=\"javascript:auth('google');\">Google Plus</a></p>\n            <p style=\"display: none;\" id=\"connect\">Connect to:<br /><a href=\"javascript:connect('facebook');\">Facebook</a> | <a href=\"javascript:connect('twitter');\">Twitter</a> | <a href=\"javascript:connect('google');\">Google</a></p>\n            <p id =\"profile\"></p>\n            <script src=\"http://code.jquery.com/jquery-1.10.2.min.js\"></script>\n            <script src=\"https://YOUR-HOST-HERE/_api/_files/hoodie.js\"></script>\n            <script>\n                var hoodie = new Hoodie('https://YOUR-HOST-HERE');\n                \n                //start fresh\n                hoodie.account.signOut();\n                \n                var auth = function(provider) {\n                    $('#welcome').text('Loading...');\n                    hoodie.account.socialLogin(provider)\n                    .done(function(data) {\n                        var status = (provider == 'google') ? {\"type\":\"http://schemas.google.com/DiscoverActivity\",\"target\":{\"url\":\"https://developers.google.com/+/web/snippet/examples/thing\"}} : 'I just logged in with a test app.  Please ignore this.  I\\'ll surely be deleting it soon!';\n                        \n                        //send a test post\n                        hoodie.account.socialSetStatus({\n                            provider: provider,\n                            status: status,\n                        }).done(function(data){\n                            console.log(data);\n                        });\n                    \n                        //update some stuff\n                        $('#connect').show();\n                        $('#welcome').text('Your Hoodie ID: '+data.id);\n                        $('#profile').html(JSON.stringify(data.full_profile));\n                            \n                    })\n                    .fail(function(error){\n                        console.log(error);\n                    });\n                }\n                var connect = function(provider) {\n                    hoodie.account.socialConnect(provider)\n                    .done(function(data){\n                        $('#connect').hide();\n                        $('#welcome').append('<br /><br />'+JSON.stringify(data.connections));\n                    })\n                    .fail(function(error){\n                        console.log(error);\n                    })\n                    .then(function(){\n                        //get the users profile\n                        hoodie.account.socialGetProfile(provider)\n                        .done(function(data){\n                            console.log(data);\n                        });\n                        \n                        //get the users friends (aka people they follow)\n                        hoodie.account.socialGetContacts(provider)\n                        .done(function(data){\n                            console.log(data);\n                        });\n                        \n                        //get the users followers (aka subscribers)\n                        hoodie.account.socialGetFollowers(provider)\n                        .done(function(data){\n                            console.log(data);\n                        });\n                    });\n                }\n            </script>\n        </body>\n    </html>\n                \n## Phonegap Use\n\nFor Phonegap powered apps, be sure to include the inAppBrowser feature and whitelist all domains associated with the provider authorization loop.\n\n    <access origin=\"*\" />\n    \n    <feature name=\"InAppBrowser\">\n        <param name=\"ios-package\" value=\"CDVInAppBrowser\" />\n    </feature>\n                            \n## How Login works\n\nThe plugin includes a backend component that listens and processes social requests by the Hoodie front-end on a custom port that is reverse proxied by CouchDB.  A cookie session is established with the backend to track the authorization progress and a specific provider auth url is opened in a plugin managed popup window.  The plugin then continuously polls the backend until confirmation and data about the authorization is received.  Upon successful authorization, and subsequent Hoodie sign in, the plugin returns the deferred promise with data about the authentication session and the user.\n\nIn the background, the plugin grabs key information to identify whether the social user already exists in the CouchDB _users database.  Most social providers provide an email address, so if it is available that's what we use as the Hoodie ID.  Otherwise, a unique ID is produced from a hash of the user’s display name and provider ID.  In either case, a user is created if necessary and the user details are included with the success callback data.\n\nThe backend of the plugin also produces a unique strong password that is immediately applied to that user's doc.  This password is delivered to the front-end of the plugin and a standard Hoodie signIn() is performed.\n\nIMPORTANT:  Because this sensitive information is exchanged by the plugin components, SSL should always be used.  Also, be aware the the ability to perform a traditional hoodie.account.signIn() will be impaired (for now).  Future plugin revisions may use a different solution such as CouchDB oAuth or Proxy Authentication, but for now this is the easiest approach while preserving all other Hoodie native functionality.\n\n    \n\n## Copyright\n\n(c) 2013 Xiatron LLC",
-  "_id": "hoodie-plugin-social@0.9.5",
-  "dist": {
-    "shasum": "33088c06a7a36018bad1d9e8096a03785385e467"
-  },
-  "_from": "hoodie-plugin-social@",
-  "_resolved": "https://registry.npmjs.org/hoodie-plugin-social/-/hoodie-plugin-social-0.9.5.tgz"
+    "name": "hoodie-plugin-social",
+    "version": "0.9.6",
+    "description": "A plugin to add social integration to Hoodie",
+    "author": {
+        "name": "Dale Shaw",
+        "email": "dale@xiatron.com",
+        "web": "https://appback.com"
+    },
+    "contributors": [
+        {
+            "name": "Dale Shaw",
+            "email": "dale@xiatron.com",
+            "web":  "https://appback.com"
+        }
+    ],
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/inator/hoodie-plugin-social"
+    },
+    "keywords": [
+        "hoodie",
+        "social",
+        "authentication"
+    ],
+    "homepage": "https://github.com/inator/hoodie-plugin-social",
+    "bugs": {
+        "url": "https://github.com/inator/hoodie-plugin-social/issues"
+    },
+    "dependencies": {
+        "express": "~3.4.4",
+        "passport": "~0.1.17",
+        "ports":"~1.1.0",
+        "passport-facebook": "~1.0.2",
+        "passport-twitter": "~1.0.2",
+        "public": "git://github.com/z0mt3c/passport-google-oauth.git",
+        "ntwitter": "~0.5.0",
+        "fbgraph": "~0.2.8",
+        "moment":"~2.4.0",
+        "googleapis":"0.6.1"
+    },
+    "peerDependencies": {
+        "hoodie-server": "~0.8.14"
+    },
+    "main": "index.js",
+    "readmeFilename": "README.md"
 }
