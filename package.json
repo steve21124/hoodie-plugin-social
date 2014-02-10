@@ -1,6 +1,6 @@
 {
     "name": "hoodie-plugin-social",
-    "version": "0.9.7",
+    "version": "0.9.8",
     "description": "A plugin to add social integration to Hoodie",
     "author": {
         "name": "Dale Shaw",

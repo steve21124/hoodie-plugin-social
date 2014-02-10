@@ -20,15 +20,29 @@ Open Pocket, add your provider Key/ID & Secret, then save.
 
 Signin to Hoodie through a social provider
 
-    hoodie.account.socialLogin( providerName )
+    hoodie.account.socialLogin( providerName, /*optional*/ options )
     .done( successCallback)
     .fail( errorCallback );
     
+    Supported options:
+    {
+        popupOptions: {
+            showPGLocation: true //show Phonegap inAppBrowser location bar (default false)
+        }
+    }
+    
 Connect a Hoodie account to a social account (must be logged in)
 
-    hoodie.account.socialConnect( providerName )
+    hoodie.account.socialConnect( providerName, /*optional*/ options )
     .done( successCallback)
     .fail( errorCallback );
+    
+    Supported options:
+    {
+        popupOptions: {
+            showPGLocation: true //show Phonegap inAppBrowser location bar (default false)
+        }
+    }
     
 Set status message on connected social account (must be logged in)
 
@@ -41,39 +55,42 @@ Set status message on connected social account (must be logged in)
     
 Get a user social profile from a connected provider (defaults to current user)
 
-    hoodie.account.socialGetProfile(provider, /*optional*/{
-        /*
-        * Supply one of these to get the profile of a different user
-        * user_id: userId //provider user ID
-        * user_name: userName //provider display or screen name
-        */
-    })
+    hoodie.account.socialGetProfile(provider, /*optional*/ options)
     .done( successCallback)
     .fail( errorCallback );
+    
+    Supported options:
+    {
+        user_id: userId, //provider user ID
+        user_name: userName //provider display or screen name
+    }
+
+
     
 Get a user's contacts (aka friends or following) from a connected provider (defaults to current user)
 
-    hoodie.account.socialGetContacts(provider, /*optional*/{
-        /*
-        * Supply one of these to get the contacts of a different user
-        * user_id: userId //provider user ID
-        * user_name: userName //provider display or screen name
-        */
-    })
+    hoodie.account.socialGetContacts(provider, /*optional*/ options)
     .done( successCallback)
     .fail( errorCallback );
     
+    Supported options:
+    {
+        user_id: userId, //provider user ID
+        user_name: userName //provider display or screen name
+    }
+
+    
 Get a user's followers (aka subscribers) from a connected provider (defaults to current user)
 
-    hoodie.account.socialGetFollowers(provider, /*optional*/{
-        /*
-        * Supply one of these to get the followers of a different user
-        * user_id: userId //provider user ID
-        * user_name: userName //provider display or screen name
-        */
-    })
+    hoodie.account.socialGetFollowers(provider, /*optional*/ options)
     .done( successCallback)
     .fail( errorCallback );
+    
+    Supported options:
+    {
+        user_id: userId, //provider user ID
+        user_name: userName //provider display or screen name
+    }
 
 ## Sample use
 

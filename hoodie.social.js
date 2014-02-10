@@ -11,7 +11,8 @@ Hoodie.extend(function(hoodie) {
 
         // open popup immediately to prevent it from being blocked
         var popup;
-        popup = new Popup();
+        var popupOptions = (options && options.popupOptions != undefined) ? options.popupOptions : {};
+        popup = new Popup(popupOptions);
         popup.setText('connecting to ' + providerName );
 
         return new awaitNewAuth($.extend({defer: defer, popup: popup, provider: providerName, method: 'login'}, options));
@@ -28,7 +29,8 @@ Hoodie.extend(function(hoodie) {
         } else {
             // open popup immediately to prevent it from being blocked
             var popup;
-            popup = new Popup();
+            var popupOptions = (options && options.popupOptions != undefined) ? options.popupOptions : {};
+            popup = new Popup(popupOptions);
             popup.setText('connecting to ' + providerName );
 
             return new awaitNewAuth($.extend({defer: defer, popup: popup, provider: providerName, method: 'connect', userid: hoodie.account.username}, options));
@@ -201,7 +203,11 @@ Hoodie.extend(function(hoodie) {
     }
     
     // little popup helper class
-    var Popup = function() {
+    var Popup = function(popupOptions) {
+        this.settings = $.extend({
+                showPGLocation:     false,
+            }, popupOptions);
+    
         this.win = (isPhoneGap()) ? null : window.open('', 'Title', 'toolbar=no, location=no, directories=no, status=no, menubar=no, scrollbars=yes, resizable=yes, width=600, height=600, top='+Number((screen.height/2)-300)+',left='+Number((screen.width/2)-300));
     
         this.setText = function() {
@@ -210,8 +216,10 @@ Hoodie.extend(function(hoodie) {
         
         this.open = function(url) {
             if (isPhoneGap()) {
-                this.win = window.open(encodeURI(url), '_blank', 'location=yes');
+                var location = (this.settings.showPGLocation) ? 'yes' : 'no';
+                this.win = window.open(encodeURI(url), '_blank', 'location='+location);
             } else {
+                console.log(this.settings);
                 this.win.location.href = url;
             }
         };
