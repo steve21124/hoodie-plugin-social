@@ -2,9 +2,7 @@
 
 This plugin allows Hoodie app integration with popular social network providers.  Social authentication, authorization, status updates, get contacts, and get followers are currently supported.  Supported providers currently include Facebook, Twitter, and Google+.
 
-The development of this plugin is sponsored by Appback.com - the future home of Hoodie Hosting!
-
-Please note:  This plugin is under major development and we are actively experimenting to identify the best ways of integrating with Hoodie.  Use at your own risk.
+The development of this plugin is sponsored by Appback.com - the first and only Hoodie Host!  Go to [https://appback.com](https://appback.com) to get started for free today!
 
 ## Installation
 
@@ -187,8 +185,8 @@ The backend of the plugin also produces a unique strong password that is immedia
 
 IMPORTANT:  Because this sensitive information is exchanged by the plugin components, SSL should always be used.  Also, be aware the the ability to perform a traditional hoodie.account.signIn() will be impaired (for now).  Future plugin revisions may use a different solution such as CouchDB oAuth or Proxy Authentication, but for now this is the easiest approach while preserving all other Hoodie native functionality.
 
-    
+Please note:  This plugin is under major development and we are actively experimenting to identify the best ways of integrating with Hoodie.  Use at your own risk.
 
 ## Copyright
 
-(c) 2013 Xiatron LLC
+(c) 2013-2014 Xiatron LLC
