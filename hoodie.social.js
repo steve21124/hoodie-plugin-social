@@ -219,7 +219,6 @@ Hoodie.extend(function(hoodie) {
                 var location = (this.settings.showPGLocation) ? 'yes' : 'no';
                 this.win = window.open(encodeURI(url), '_blank', 'location='+location);
             } else {
-                console.log(this.settings);
                 this.win.location.href = url;
             }
         };

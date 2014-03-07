@@ -7,7 +7,9 @@ var express = require('express');
 var passport = require('passport');
 var util = require('util');
 var ports = require('ports');
-var appName = module.parent.filename.match('.*\/(.+?)\/node_modules')[1];
+var appName = module.parent.filename.match('.*\/(.+?)\/node_modules')[1]; //TODO: Get this from the app package file
+var compareVersion = require('compare-version');
+var hoodieServerVer = require('../hoodie-server/package.json').version;
 var facebookStrategy = require('passport-facebook').Strategy;
 var twitterStrategy = require('passport-twitter').Strategy;
 var googleStrategy = require('passport-google-oauth').OAuth2Strategy; //from git://github.com/z0mt3c/passport-google-oauth.git
@@ -17,7 +19,6 @@ var host = null;
 var socialApi = require('./social_api.js');
 var moment = require('moment');
 var socialTasks = []; //keeps track of social active tasks
-
 
 //config express and passport
 passport.serializeUser(function(user, done) { done(null, user); });
@@ -240,13 +241,20 @@ module.exports = function (hoodie, cb) {
                 var userdoc = {
                     id: id,
                     password: Math.random().toString(36).slice(2,11),
-                    ownerHash: uuid,
                     createdAt: timeStamp,
                     updatedAt: timeStamp,
                     signedUpAt: timeStamp,
                     database: 'user/'+uuid,
                     name: 'user/'+id
                 };
+                
+                //set ownerHash/hoodieId
+                if (compareVersion(hoodieServerVer, '0.8.15') >= 0) {
+                    userdoc['hoodieId'] = uuid;
+                } else {
+                    userdoc['ownerHash'] = uuid;
+                }
+                
                 hoodie.account.add('user', userdoc, function(err, data){
                     //cycle back through so we can catch the fully created user
                     if (!err) res.redirect(host+'/'+req.query.provider+'/callback');

@@ -1,47 +1,48 @@
 {
-    "name": "hoodie-plugin-social",
-    "version": "0.9.8",
-    "description": "A plugin to add social integration to Hoodie",
-    "author": {
-        "name": "Dale Shaw",
-        "email": "dale@xiatron.com",
-        "web": "https://appback.com"
-    },
-    "contributors": [
-        {
-            "name": "Dale Shaw",
-            "email": "dale@xiatron.com",
-            "web":  "https://appback.com"
-        }
-    ],
-    "repository": {
-        "type": "git",
-        "url": "https://github.com/inator/hoodie-plugin-social"
-    },
-    "keywords": [
-        "hoodie",
-        "social",
-        "authentication"
-    ],
-    "homepage": "https://github.com/inator/hoodie-plugin-social",
-    "bugs": {
-        "url": "https://github.com/inator/hoodie-plugin-social/issues"
-    },
-    "dependencies": {
-        "express": "~3.4.4",
-        "passport": "~0.1.17",
-        "ports":"~1.1.0",
-        "passport-facebook": "~1.0.2",
-        "passport-twitter": "~1.0.2",
-        "public": "git://github.com/z0mt3c/passport-google-oauth.git",
-        "ntwitter": "~0.5.0",
-        "fbgraph": "~0.2.8",
-        "moment":"~2.4.0",
-        "googleapis":"0.6.1"
-    },
-    "peerDependencies": {
-        "hoodie-server": "~0.8.14"
-    },
-    "main": "index.js",
-    "readmeFilename": "README.md"
+  "name": "hoodie-plugin-social",
+  "version": "0.9.9",
+  "description": "A plugin to add social integration to Hoodie",
+  "author": {
+    "name": "Dale Shaw",
+    "email": "dale@xiatron.com",
+    "url": "https://appback.com"
+  },
+  "contributors": [
+    {
+      "name": "Dale Shaw",
+      "email": "dale@xiatron.com",
+      "url": "https://appback.com"
+    }
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/inator/hoodie-plugin-social"
+  },
+  "keywords": [
+    "hoodie",
+    "social",
+    "authentication"
+  ],
+  "homepage": "https://github.com/inator/hoodie-plugin-social",
+  "bugs": {
+    "url": "https://github.com/inator/hoodie-plugin-social/issues"
+  },
+  "dependencies": {
+    "express": "3.4.4",
+    "passport": "0.1.17",
+    "ports": "1.1.0",
+    "passport-facebook": "1.0.2",
+    "passport-twitter": "1.0.2",
+    "public": "git://github.com/z0mt3c/passport-google-oauth.git",
+    "ntwitter": "0.5.0",
+    "fbgraph": "0.2.8",
+    "moment": "2.4.0",
+    "googleapis": "0.6.1",
+    "compare-version": "0.1.1"
+  },
+  "peerDependencies": {
+    "hoodie-server": ">= 0.8.14"
+  },
+  "main": "index.js",
+  "readmeFilename": "README.md"
 }
