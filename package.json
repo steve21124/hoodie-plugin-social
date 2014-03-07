@@ -35,7 +35,7 @@
     "passport-twitter": "1.0.2",
     "public": "git://github.com/z0mt3c/passport-google-oauth.git",
     "ntwitter": "0.5.0",
-    "fbgraph": "0.2.8",
+    "fbgraph": "~0.2.8",
     "moment": "2.4.0",
     "googleapis": "0.6.1",
     "compare-version": "0.1.1"
