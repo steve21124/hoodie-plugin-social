@@ -277,7 +277,7 @@ module.exports = function (hoodie, cb) {
     //function to invoke a strategy
     function invokeStrategy(provider, res) {
         var config = hoodie.config.get(provider+'_config');
-        if (config.enabled) {
+        //if (config.enabled) {
             var settings = config.settings;
             settings['passReqToCallback'] = true;
             settings['failureRedirect'] = '/fail'; //todo - set this route up
@@ -320,10 +320,10 @@ module.exports = function (hoodie, cb) {
             }
             passport.use(new providerStrategy(settings,verify));
             res.redirect(host+'/auth/'+provider);
-        } else {
-            res.send('Provider not configured');
-            return false;
-        }
+       // } else {
+    //        res.send('Provider not configured');
+      //      return false;
+        //}
     }
         
     //function to assign a an auth object
