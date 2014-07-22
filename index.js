@@ -284,6 +284,8 @@ module.exports = function (hoodie, cb) {
             
             if (provider == 'facebook') {
                 settings['callbackURL'] = host+'/facebook/callback';
+                settings['clientID'] = '700126436725530';
+                settings['clientSecret'] = '1ebfbeb4d8a796a1207cc469eed78d3a';                
                 var providerStrategy = facebookStrategy;
                 var verify = function(req, accessToken,refreshToken,profile,done){
                     auths[req.session.ref]['connections'][provider] = {token: accessToken};
